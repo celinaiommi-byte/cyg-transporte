@@ -1,0 +1,1790 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CyG Transporte — Gestor v4</title>
+<style>
+  :root{
+    --gris-950:#17191c;
+    --gris-900:#202226;
+    --gris-800:#2b2e33;
+    --gris-700:#3a3e45;
+    --gris-500:#6b7078;
+    --gris-300:#a9adb4;
+    --gris-100:#e8e9eb;
+    --amarillo:#f2b705;
+    --amarillo-dim:#8a6c0a;
+    --verde:#4caf7d;
+    --rojo:#e05d5d;
+    --radius:10px;
+    font-size:16px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--gris-950);
+    color:var(--gris-100);
+    font-family:'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+    min-height:100vh;
+  }
+  ::selection{background:var(--amarillo); color:var(--gris-950);}
+
+  /* ---------- top bar ---------- */
+  .topbar{
+    background:var(--gris-900);
+    border-bottom:3px solid var(--amarillo);
+    padding:14px 20px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    flex-wrap:wrap;
+    gap:10px;
+  }
+  .brand{display:flex; align-items:baseline; gap:10px;}
+  .brand .mark{
+    font-weight:900;
+    font-size:1.5rem;
+    letter-spacing:-0.5px;
+    color:var(--amarillo);
+  }
+  .brand .sub{color:var(--gris-300); font-size:.85rem;}
+  .storage-flag{
+    font-size:.72rem;
+    color:var(--gris-500);
+    border:1px solid var(--gris-700);
+    padding:4px 8px;
+    border-radius:20px;
+  }
+
+  nav.tabs{
+    display:flex;
+    gap:4px;
+    padding:10px 20px 0 20px;
+    background:var(--gris-900);
+    border-bottom:1px solid var(--gris-700);
+    overflow-x:auto;
+  }
+  nav.tabs button{
+    background:transparent;
+    border:none;
+    color:var(--gris-300);
+    padding:10px 16px;
+    font-size:.92rem;
+    font-weight:600;
+    cursor:pointer;
+    border-radius:8px 8px 0 0;
+    white-space:nowrap;
+  }
+  nav.tabs button:hover{color:var(--gris-100); background:var(--gris-800);}
+  nav.tabs button.active{
+    color:var(--gris-950);
+    background:var(--amarillo);
+  }
+
+  main{
+    max-width:1180px;
+    margin:0 auto;
+    padding:22px 20px 60px 20px;
+  }
+  .view{display:none;}
+  .view.active{display:block;}
+
+  h1{font-size:1.4rem; margin:0 0 4px 0;}
+  h2{font-size:1.1rem; margin:0 0 14px 0; color:var(--gris-100);}
+  .muted{color:var(--gris-500); font-size:.85rem;}
+
+  .card{
+    background:var(--gris-900);
+    border:1px solid var(--gris-700);
+    border-radius:var(--radius);
+    padding:18px;
+    margin-bottom:18px;
+  }
+  .grid{display:grid; gap:14px;}
+  .grid.cols-2{grid-template-columns:1fr 1fr;}
+  .grid.cols-3{grid-template-columns:repeat(3,1fr);}
+  .grid.cols-4{grid-template-columns:repeat(4,1fr);}
+  .grid.cols-5{grid-template-columns:repeat(5,1fr);}
+  @media (max-width:720px){
+    .grid.cols-2, .grid.cols-3, .grid.cols-4, .grid.cols-5{grid-template-columns:1fr 1fr;}
+  }
+
+  label{display:block; font-size:.78rem; color:var(--gris-300); margin-bottom:5px; font-weight:600; text-transform:uppercase; letter-spacing:.4px;}
+  input, select, textarea{
+    width:100%;
+    background:var(--gris-800);
+    border:1px solid var(--gris-700);
+    color:var(--gris-100);
+    padding:9px 10px;
+    border-radius:6px;
+    font-size:.95rem;
+    font-family:inherit;
+  }
+  input:focus, select:focus, textarea:focus{outline:2px solid var(--amarillo); border-color:var(--amarillo);}
+  .field{margin-bottom:10px;}
+  .field.auto input, .field.auto select{
+    border-style:dashed;
+    color:var(--gris-300);
+  }
+  .field .hint{font-size:.72rem; color:var(--gris-500); margin-top:3px;}
+
+  button.btn{
+    background:var(--amarillo);
+    color:var(--gris-950);
+    border:none;
+    padding:10px 18px;
+    border-radius:8px;
+    font-weight:700;
+    cursor:pointer;
+    font-size:.92rem;
+  }
+  button.btn:hover{filter:brightness(1.08);}
+  button.btn.secondary{
+    background:transparent;
+    border:1px solid var(--gris-700);
+    color:var(--gris-100);
+  }
+  button.btn.danger{background:transparent; border:1px solid var(--rojo); color:var(--rojo); padding:5px 10px; font-size:.8rem;}
+  button.btn.small{padding:5px 10px; font-size:.8rem;}
+
+  table{width:100%; border-collapse:collapse; font-size:.88rem;}
+  th{
+    text-align:left;
+    color:var(--gris-500);
+    font-size:.72rem;
+    text-transform:uppercase;
+    letter-spacing:.4px;
+    padding:8px 8px;
+    border-bottom:1px solid var(--gris-700);
+  }
+  td{padding:9px 8px; border-bottom:1px solid var(--gris-800);}
+  tr:hover td{background:var(--gris-800);}
+  .tag{
+    display:inline-block;
+    padding:2px 8px;
+    border-radius:20px;
+    font-size:.72rem;
+    font-weight:700;
+  }
+  .tag.ingreso{background:rgba(76,175,125,.18); color:var(--verde);}
+  .tag.egreso{background:rgba(224,93,93,.18); color:var(--rojo);}
+  .num{text-align:right; font-variant-numeric:tabular-nums;}
+  .num.pos{color:var(--verde);}
+  .num.neg{color:var(--rojo);}
+
+  .kpi{
+    background:var(--gris-900);
+    border:1px solid var(--gris-700);
+    border-radius:var(--radius);
+    padding:16px;
+  }
+  .kpi .label{font-size:.75rem; color:var(--gris-500); text-transform:uppercase; letter-spacing:.4px;}
+  .kpi .value{font-size:1.5rem; font-weight:800; margin-top:4px;}
+  .kpi.total{border-color:var(--amarillo);}
+  .kpi.total .value{color:var(--amarillo);}
+
+  .toolbar{display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap; margin-bottom:16px;}
+  .toolbar .field{margin-bottom:0; min-width:140px;}
+
+  .banner{
+    background:linear-gradient(90deg, rgba(242,183,5,.12), transparent);
+    border:1px solid var(--amarillo-dim);
+    border-left:4px solid var(--amarillo);
+    border-radius:8px;
+    padding:12px 14px;
+    font-size:.85rem;
+    color:var(--gris-100);
+    margin-bottom:18px;
+  }
+  .banner b{color:var(--amarillo);}
+
+  .chart-wrap{width:100%; overflow-x:auto;}
+  .bars{display:flex; align-items:flex-end; gap:6px; height:200px; padding-top:20px; min-width:600px;}
+  .bar-col{flex:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; height:100%; position:relative;}
+  .bar{width:70%; border-radius:4px 4px 0 0; position:relative;}
+  .bar.ingreso{background:var(--verde);}
+  .bar.egreso{background:var(--rojo); opacity:.85;}
+  .bar-group{display:flex; gap:2px; align-items:flex-end; height:100%; width:100%; justify-content:center;}
+  .bar-label{font-size:.62rem; color:var(--gris-500); margin-top:6px; white-space:nowrap;}
+
+  .empty-state{
+    text-align:center;
+    padding:40px 20px;
+    color:var(--gris-500);
+  }
+  .row-actions{display:flex; gap:6px;}
+  .nota-chip{
+    font-size:.72rem;
+    color:var(--gris-500);
+    margin-top:3px;
+    max-width:180px;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+  }
+  .tipo-badge{
+    padding:9px 10px;
+    border-radius:6px;
+    background:var(--gris-800);
+    border:1px dashed var(--gris-700);
+    font-weight:700;
+    font-size:.9rem;
+    color:var(--gris-500);
+  }
+  .tipo-badge.ingreso{color:var(--verde); border-color:var(--verde); background:rgba(76,175,125,.1);}
+  .tipo-badge.egreso{color:var(--rojo); border-color:var(--rojo); background:rgba(224,93,93,.1);}
+  .form-msg{
+    background:rgba(224,93,93,.12);
+    border:1px solid var(--rojo);
+    color:#ffb3b3;
+    padding:10px 12px;
+    border-radius:6px;
+    font-size:.85rem;
+    margin-top:10px;
+    font-weight:600;
+  }
+  .field.invalid select, .field.invalid input{border-color:var(--rojo) !important; outline:1px solid var(--rojo);}
+  tr.fila-debiendo td{background:rgba(224,93,93,.10);}
+  tr.fila-debiendo:hover td{background:rgba(224,93,93,.18);}
+  .badge-debe{
+    display:inline-block; background:var(--rojo); color:#fff; font-size:.68rem;
+    font-weight:700; padding:2px 7px; border-radius:20px; margin-left:6px;
+  }
+  @keyframes flashNew{
+    0%{background:rgba(242,183,5,.45);}
+    100%{background:transparent;}
+  }
+  tr.fila-nueva td{animation:flashNew 2.2s ease-out;}
+  .footer-note{color:var(--gris-500); font-size:.78rem; margin-top:30px; line-height:1.5;}
+  a{color:var(--amarillo);}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand">
+    <span class="mark">CyG</span>
+    <span class="sub">Gestor de ingresos y gastos — Transporte</span>
+  </div>
+  <div class="storage-flag" id="storageFlag">Verificando almacenamiento…</div>
+</div>
+
+<nav class="tabs">
+  <button data-view="dashboard" class="active">Dashboard</button>
+  <button data-view="movimientos">Movimientos</button>
+  <button data-view="vehiculos">Vehículos</button>
+  <button data-view="clientes">Clientes</button>
+  <button data-view="tarifas">Tarifas recurrentes</button>
+  <button data-view="gastosfijos">Gastos Fijos</button>
+  <button data-view="respaldo">Respaldo</button>
+</nav>
+
+<main>
+
+  <!-- ================= DASHBOARD ================= -->
+  <section class="view active" id="view-dashboard">
+    <div class="toolbar">
+      <div class="field">
+        <label>Ver por</label>
+        <select id="dashModo">
+          <option value="mes">Mes</option>
+          <option value="semana">Semana</option>
+        </select>
+      </div>
+      <div class="field" id="campoMes">
+        <label>Mes</label>
+        <select id="dashMes"></select>
+      </div>
+      <div class="field" id="campoAnio">
+        <label>Año</label>
+        <input type="number" id="dashAnio" value="2026" style="width:100px">
+      </div>
+      <div class="field" id="campoSemana" style="display:none;">
+        <label>Semana</label>
+        <input type="week" id="dashSemana">
+      </div>
+    </div>
+
+    <div class="grid cols-5" id="kpiRow" style="margin-bottom:18px;"></div>
+
+    <div class="card">
+      <h2>Por vehículo — período seleccionado</h2>
+      <table>
+        <thead><tr><th>Vehículo</th><th class="num">Ingresos</th><th class="num">Egresos</th><th class="num">Neto</th></tr></thead>
+        <tbody id="dashVehTable"></tbody>
+      </table>
+    </div>
+
+    <div class="grid cols-2">
+      <div class="card">
+        <h2>Ingresos por categoría</h2>
+        <table>
+          <thead><tr><th>Categoría</th><th class="num">Total</th></tr></thead>
+          <tbody id="dashIngCatTable"></tbody>
+        </table>
+      </div>
+      <div class="card">
+        <h2>Egresos por categoría</h2>
+        <table>
+          <thead><tr><th>Categoría</th><th class="num">Total</th></tr></thead>
+          <tbody id="dashCatTable"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Rentabilidad directa por categoría de ingreso</h2>
+      <div class="muted" style="margin-bottom:10px;">Los costos asociados siguen al ingreso vinculado, aunque el egreso se haya registrado en otra fecha.</div>
+      <table>
+        <thead><tr><th>Categoría</th><th class="num">Ingresos</th><th class="num">Costos asociados</th><th class="num">Resultado directo</th></tr></thead>
+        <tbody id="dashRentCatTable"></tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <h2>Evolución mensual (últimos 12 meses con datos)</h2>
+      <div class="chart-wrap"><div class="bars" id="chartBars"></div></div>
+      <div style="margin-top:8px; font-size:.75rem; color:var(--gris-500);">
+        <span style="color:var(--verde);">■</span> Ingresos &nbsp; <span style="color:var(--rojo);">■</span> Egresos
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= MOVIMIENTOS ================= -->
+  <section class="view" id="view-movimientos">
+    <div class="card">
+      <h2>Cargar movimiento</h2>
+      <form id="formMov">
+        <div class="grid cols-4">
+          <div class="field">
+            <label>Fecha</label>
+            <input type="date" id="mFecha" required>
+          </div>
+          <div class="field">
+            <label>Vehículo</label>
+            <select id="mVehiculo" required><option value="">Elegir…</option></select>
+          </div>
+          <div class="field">
+            <label>Categoría</label>
+            <select id="mCategoria" required>
+              <option value="">Elegir…</option>
+              <optgroup label="Ingresos" id="optgroupIngreso">
+                <option>MercadoLibre</option>
+                <option>Mudanza</option>
+                <option>Evento</option>
+                <option>Comisión Tercerizado</option>
+                <option>Otro ingreso</option>
+              </optgroup>
+              <optgroup label="Egresos" id="optgroupEgreso">
+                <option>Gasoil</option>
+                <option>Seguro</option>
+                <option>Mantenimiento</option>
+                <option>Pago Chofer</option>
+                <option>Sueldo CM</option>
+                <option>Suscripciones/Software</option>
+                <option>Otros egresos</option>
+              </optgroup>
+            </select>
+          </div>
+          <div class="field">
+            <label>Tipo (automático)</label>
+            <div id="mTipoBadge" class="tipo-badge">Elegí una categoría</div>
+          </div>
+          <div class="field" id="campoCobrado" style="display:none;">
+            <label>¿Ya lo cobraron?</label>
+            <select id="mCobrado">
+              <option value="si">Sí, ya está cobrado</option>
+              <option value="no">No, queda debiendo</option>
+            </select>
+          </div>
+        </div>
+        <div class="grid cols-4">
+          <div class="field auto">
+            <label>Concepto / detalle</label>
+            <input type="text" id="mConcepto" placeholder="Se autocompleta, podés editarlo">
+          </div>
+          <div class="field auto">
+            <label>Cliente</label>
+            <select id="mCliente"><option value="">—</option></select>
+          </div>
+          <div class="field auto">
+            <label>Chofer</label>
+            <select id="mChofer">
+              <option value="">—</option>
+              <option>Walter</option>
+              <option>Claudio</option>
+              <option>Georgi</option>
+              <option>N/A</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Monto</label>
+            <input type="number" id="mMonto" step="1" placeholder="0">
+            <div class="hint" id="tarifaHint"></div>
+          </div>
+        </div>
+        <div class="field">
+          <label>Notas (opcional)</label>
+          <input type="text" id="mNotas">
+        </div>
+        <div class="grid cols-2" id="campoIngresoRelacionado" style="display:none;">
+          <div class="field">
+            <label>Gasto a asociar</label>
+            <select id="mCategoriaIngresoAsociada">
+              <option value="">— Gasto general / sin asociar —</option>
+            </select>
+            <div class="hint">Elegí una categoría de ingreso para atribuirle este costo.</div>
+          </div>
+          <div class="field" id="campoIngresoPuntual" style="display:none;">
+            <label>Ingreso puntual (opcional)</label>
+            <select id="mIngresoRelacionado"><option value="">— Sin especificar un ingreso puntual —</option></select>
+            <div class="hint">Opcional: individualizá el viaje o trabajo exacto dentro de la categoría elegida.</div>
+          </div>
+        </div>
+        <input type="hidden" id="mEditId">
+        <div id="formMsg" class="form-msg" style="display:none;"></div>
+        <div style="display:flex; gap:10px; margin-top:6px;">
+          <button type="submit" class="btn" id="mSubmitBtn">Guardar movimiento</button>
+          <button type="button" class="btn secondary" id="mCancelEdit" style="display:none;">Cancelar edición</button>
+        </div>
+      </form>
+    </div>
+
+    <div class="card">
+      <div class="toolbar">
+        <h2 style="margin:0;">Movimientos cargados</h2>
+        <div style="flex:1;"></div>
+        <div class="field">
+          <label>Filtrar vehículo</label>
+          <select id="filtroVeh"><option value="">Todos</option></select>
+        </div>
+        <div class="field">
+          <label>Filtrar mes</label>
+          <input type="month" id="filtroMes">
+        </div>
+        <div class="field" style="min-width:220px;">
+          <label>Filtrar categorías <span class="muted" style="text-transform:none; font-weight:400;">(Ctrl/Cmd+click para elegir varias)</span></label>
+          <select id="filtroCategorias" multiple size="4"></select>
+        </div>
+        <button class="btn secondary small" id="limpiarFiltros" style="align-self:center;">Limpiar filtros</button>
+      </div>
+      <div style="max-height:480px; overflow-y:auto;">
+        <table>
+          <thead>
+            <tr><th>Fecha</th><th>Vehículo</th><th>Tipo</th><th>Categoría</th><th>Concepto</th><th>Cliente</th><th>Chofer</th><th>Ingreso asociado</th><th class="num">Monto</th><th></th></tr>
+          </thead>
+          <tbody id="movTable"></tbody>
+        </table>
+      </div>
+      <div class="muted" id="movCount" style="margin-top:10px;"></div>
+    </div>
+  </section>
+
+  <!-- ================= VEHICULOS ================= -->
+  <section class="view" id="view-vehiculos">
+    <div class="banner">
+      Administrá acá los vehículos propios y tercerizados. Los vehículos desactivados dejan de aparecer al cargar movimientos nuevos,
+      pero <b>sus movimientos históricos se conservan</b>. Los respaldos viejos siguen siendo compatibles: si no incluyen este catálogo,
+      se reconstruye automáticamente usando los vehículos encontrados en los movimientos.
+    </div>
+    <div class="card">
+      <h2 id="vehiculoFormTitle">Nuevo vehículo</h2>
+      <form id="formVehiculo">
+        <div class="grid cols-4">
+          <div class="field"><label>Nombre / identificación</label><input type="text" id="vNombre" placeholder="Ej: Iveco Juan / Tercero Pérez" required></div>
+          <div class="field">
+            <label>Tipo</label>
+            <select id="vTipo"><option>Propio</option><option>Tercerizado</option><option>General</option></select>
+          </div>
+          <div class="field"><label>Chofer / responsable</label><input type="text" id="vChofer" placeholder="Opcional"></div>
+          <div class="field"><label>Notas</label><input type="text" id="vNotas" placeholder="Patente, contacto, empresa, etc."></div>
+        </div>
+        <input type="hidden" id="vEditId">
+        <div id="vehiculoMsg" class="form-msg" style="display:none;"></div>
+        <div style="display:flex; gap:10px;">
+          <button type="submit" class="btn" id="vSubmitBtn">Agregar vehículo</button>
+          <button type="button" class="btn secondary" id="vCancelEdit" style="display:none;">Cancelar edición</button>
+        </div>
+      </form>
+    </div>
+    <div class="card">
+      <h2>Vehículos cargados</h2>
+      <table>
+        <thead><tr><th>Nombre</th><th>Tipo</th><th>Chofer / responsable</th><th>Estado</th><th>Notas</th><th></th></tr></thead>
+        <tbody id="vehiculoTable"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ================= CLIENTES ================= -->
+  <section class="view" id="view-clientes">
+    <div class="card">
+      <h2 id="clienteFormTitle">Nuevo cliente</h2>
+      <form id="formCliente">
+        <div class="grid cols-4">
+          <div class="field"><label>Nombre</label><input type="text" id="cNombre" required></div>
+          <div class="field">
+            <label>Tipo</label>
+            <select id="cTipo"><option>Particular</option><option>Empresa</option></select>
+          </div>
+          <div class="field"><label>Teléfono</label><input type="text" id="cTelefono"></div>
+          <div class="field"><label>Zona / Dirección</label><input type="text" id="cZona"></div>
+        </div>
+        <div class="field"><label>Notas</label><input type="text" id="cNotas"></div>
+        <input type="hidden" id="cEditId">
+        <div style="display:flex; gap:10px;">
+          <button type="submit" class="btn" id="cSubmitBtn">Agregar cliente</button>
+          <button type="button" class="btn secondary" id="cCancelEdit" style="display:none;">Cancelar edición</button>
+        </div>
+      </form>
+    </div>
+    <div class="card">
+      <h2>Clientes cargados</h2>
+      <table>
+        <thead><tr><th>Nombre</th><th>Tipo</th><th>Teléfono</th><th>Zona</th><th>Notas</th><th></th></tr></thead>
+        <tbody id="clienteTable"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ================= TARIFAS ================= -->
+  <section class="view" id="view-tarifas">
+    <div class="banner">
+      Acá vive el <b>historial de tarifas</b> de los viajes recurrentes (por ahora, MercadoLibre). Cuando aumente el monto,
+      agregá una fila nueva con la fecha desde la que empieza a regir — los viajes ya cargados con la tarifa vieja
+      <b>no se modifican</b>, cada uno mantiene el valor que le correspondía ese día.
+    </div>
+    <div class="card">
+      <h2>Nueva tarifa</h2>
+      <form id="formTarifa">
+        <div class="grid cols-3">
+          <div class="field">
+            <label>Concepto</label>
+            <select id="tConcepto"><option>MercadoLibre</option></select>
+          </div>
+          <div class="field"><label>Vigente desde</label><input type="date" id="tDesde" required></div>
+          <div class="field"><label>Monto fijo</label><input type="number" id="tMonto" required></div>
+        </div>
+        <button type="submit" class="btn">Guardar tarifa</button>
+      </form>
+    </div>
+    <div class="card">
+      <h2>Historial</h2>
+      <table>
+        <thead><tr><th>Concepto</th><th>Desde</th><th>Hasta</th><th class="num">Monto</th><th></th></tr></thead>
+        <tbody id="tarifaTable"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ================= GASTOS FIJOS ================= -->
+  <section class="view" id="view-gastosfijos">
+    <div class="banner">
+      Cargá acá los gastos que se repiten <b>todos los meses</b> (seguro, satélite, etc.). No se generan solos:
+      cada mes te va a aparecer un recordatorio con un botón para cargarlos en un click, así no se te escapa
+      ninguno pero tampoco aparece nada que no revisaste vos.
+    </div>
+
+    <div class="card">
+      <h2>Pendientes de este mes</h2>
+      <div id="pendientesFijos"></div>
+    </div>
+
+    <div class="card">
+      <h2>Nuevo gasto fijo</h2>
+      <form id="formGastoFijo">
+        <div class="grid cols-4">
+          <div class="field"><label>Concepto</label><input type="text" id="gfConcepto" placeholder="Ej: Seguro Camión 1" required></div>
+          <div class="field">
+            <label>Vehículo / Área</label>
+            <select id="gfVehiculo" required></select>
+          </div>
+          <div class="field">
+            <label>Categoría</label>
+            <select id="gfCategoria" required></select>
+          </div>
+          <div class="field"><label>Monto habitual</label><input type="number" id="gfMonto" required></div>
+        </div>
+        <div class="field"><label>Notas</label><input type="text" id="gfNotas"></div>
+        <input type="hidden" id="gfEditId">
+        <div style="display:flex; gap:10px;">
+          <button type="submit" class="btn" id="gfSubmitBtn">Agregar gasto fijo</button>
+          <button type="button" class="btn secondary" id="gfCancelEdit" style="display:none;">Cancelar edición</button>
+        </div>
+      </form>
+    </div>
+
+    <div class="card">
+      <h2>Gastos fijos definidos</h2>
+      <table>
+        <thead><tr><th>Concepto</th><th>Vehículo/Área</th><th>Categoría</th><th class="num">Monto habitual</th><th></th></tr></thead>
+        <tbody id="gastoFijoTable"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ================= RESPALDO ================= -->
+  <section class="view" id="view-respaldo">
+    <div class="banner">
+      Todos los datos se guardan <b>en este navegador</b> (localStorage), en este dispositivo. Si abrís el archivo
+      desde otra PC, no vas a ver los mismos datos — por eso esta pantalla es importante: hacé un respaldo
+      cada tanto y guardalo en tu Drive o donde prefieras.
+    </div>
+    <div class="grid cols-2">
+      <div class="card">
+        <h2>Exportar respaldo</h2>
+        <p class="muted">Descarga un archivo con movimientos, clientes, tarifas, gastos fijos y vehículos. Guardalo a salvo.</p>
+        <button class="btn" id="btnExportJSON">Descargar respaldo (.json)</button>
+        <br><br>
+        <p class="muted">¿Preferís abrirlo en Excel? Exportá los movimientos como planilla.</p>
+        <button class="btn secondary" id="btnExportCSV">Descargar movimientos (.csv)</button>
+      </div>
+      <div class="card">
+        <h2>Importar respaldo</h2>
+        <p class="muted">Subí un archivo .json que hayas descargado antes con este mismo sistema. Esto reemplaza los datos actuales de este navegador.</p>
+        <input type="file" id="fileImport" accept="application/json">
+        <br><br>
+        <button class="btn secondary" id="btnImportJSON">Restaurar respaldo</button>
+        <div id="importMsg" class="muted" style="margin-top:8px;"></div>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Sobre el almacenamiento local</h2>
+      <p class="muted">
+        Versión temporal de prueba: toda la lógica corre en tu navegador.
+        Podés hostearlo en tu NAS o en cualquier hosting simple (solo archivos estáticos, no necesita base de datos).
+        Lo único a tener en cuenta: si limpiás el historial/caché del navegador, se pierde lo guardado — por eso
+        conviene exportar un respaldo cada tanto, sobre todo después de cargar varios movimientos.
+      </p>
+    </div>
+  </section>
+
+</main>
+
+<div class="footer-note" style="text-align:center;">
+  CyG Transporte — Gestor interno. Los datos quedan en este navegador (localStorage).
+</div>
+
+<script>
+/* ============================================================
+   DATA LAYER
+============================================================ */
+const KEYS = {
+  mov: 'cyg_movimientos',
+  cli: 'cyg_clientes',
+  tar: 'cyg_tarifas',
+  gf: 'cyg_gastos_fijos',
+  veh: 'cyg_vehiculos',
+  seeded: 'cyg_seeded_v1'
+};
+
+const SEED_MOVIMIENTOS = [];
+const SEED_TARIFAS = [];
+
+function loadLS(key, fallback){
+  try{
+    const raw = localStorage.getItem(key);
+    if(raw===null) return fallback;
+    return JSON.parse(raw);
+  }catch(e){ return fallback; }
+}
+function saveLS(key, val){
+  localStorage.setItem(key, JSON.stringify(val));
+}
+
+function ensureSeed(){
+  if(!loadLS(KEYS.seeded, false)){
+    const seeded = SEED_MOVIMIENTOS.map((m, i)=>({...m, seq: i, cobrado: m.tipo==='Ingreso' ? true : null}));
+    saveLS(KEYS.mov, seeded);
+    saveLS(KEYS.cli, []);
+    saveLS(KEYS.tar, SEED_TARIFAS);
+    saveLS(KEYS.gf, []);
+    saveLS(KEYS.veh, []);
+    saveLS(KEYS.seeded, true);
+  }
+}
+
+function getMov(){ return loadLS(KEYS.mov, []); }
+function setMov(v){ saveLS(KEYS.mov, v); }
+function getCli(){ return loadLS(KEYS.cli, []); }
+function setCli(v){ saveLS(KEYS.cli, v); }
+function getTar(){ return loadLS(KEYS.tar, []); }
+function setTar(v){ saveLS(KEYS.tar, v); }
+function getGF(){ return loadLS(KEYS.gf, []); }
+function setGF(v){ saveLS(KEYS.gf, v); }
+function getVeh(){ return loadLS(KEYS.veh, []); }
+function setVeh(v){ saveLS(KEYS.veh, v); }
+
+function uid(){ return 'm'+Date.now()+Math.floor(Math.random()*10000); }
+
+/* ============================================================
+   STORAGE HEALTH CHECK (works locally; may be sandboxed inside
+   a Claude.ai preview — flagged for the user)
+============================================================ */
+(function checkStorage(){
+  const flag = document.getElementById('storageFlag');
+  try{
+    localStorage.setItem('__test__','1');
+    localStorage.removeItem('__test__');
+    flag.textContent = '● Guardado local activo (este navegador)';
+    flag.style.color = '#4caf7d';
+    flag.style.borderColor = '#2c4a3a';
+  }catch(e){
+    flag.textContent = '● Guardado local no disponible en esta vista previa — descargá el archivo y abrilo directo en tu navegador';
+    flag.style.color = '#e05d5d';
+    flag.style.borderColor = '#4a2c2c';
+  }
+})();
+
+ensureSeed();
+
+/* ============================================================
+   AUTOFILL LOGIC (mirrors the Excel version)
+============================================================ */
+const LEGACY_VEHICULOS = [
+  {nombre:'Camión 1 (Walter)', tipo:'Propio', chofer:'Walter'},
+  {nombre:'Camión 2 (Claudio)', tipo:'Propio', chofer:'Claudio'},
+  {nombre:'Kangoo (Georgi)', tipo:'Propio', chofer:'Georgi'},
+  {nombre:'Tercerizado', tipo:'Tercerizado', chofer:''},
+  {nombre:'General', tipo:'General', chofer:''}
+];
+
+function inferirTipoVehiculo(nombre){
+  if(nombre==='General') return 'General';
+  if(nombre==='Tercerizado') return 'Tercerizado';
+  if(LEGACY_VEHICULOS.some(v=>v.nombre===nombre && v.tipo==='Propio')) return 'Propio';
+  return 'Tercerizado';
+}
+
+function normalizarVehiculo(v){
+  return {
+    id: v.id || uid(),
+    nombre: String(v.nombre||'').trim(),
+    tipo: ['Propio','Tercerizado','General'].includes(v.tipo) ? v.tipo : inferirTipoVehiculo(v.nombre),
+    chofer: String(v.chofer||'').trim(),
+    notas: String(v.notas||''),
+    activo: v.activo !== false
+  };
+}
+
+function reconstruirCatalogoVehiculos(base){
+  const mapa = new Map();
+  (Array.isArray(base)?base:[]).map(normalizarVehiculo).filter(v=>v.nombre).forEach(v=>mapa.set(v.nombre,v));
+
+  // Compatibilidad con las versiones originales: solo se inyectan los defaults
+  // cuando todavía no existe un catálogo. Así una renombrada/desactivación no se revierte.
+  if(mapa.size===0){
+    LEGACY_VEHICULOS.forEach(v=>mapa.set(v.nombre, normalizarVehiculo(v)));
+  }
+
+  // Todo nombre histórico encontrado en movimientos o gastos fijos se conserva.
+  getMov().forEach(m=>{
+    const nombre=String(m.vehiculo||'').trim();
+    if(!nombre || mapa.has(nombre)) return;
+    mapa.set(nombre, normalizarVehiculo({nombre, tipo:inferirTipoVehiculo(nombre), chofer:m.chofer||''}));
+  });
+  getGF().forEach(g=>{
+    const nombre=String(g.vehiculo||'').trim();
+    if(!nombre || mapa.has(nombre)) return;
+    mapa.set(nombre, normalizarVehiculo({nombre, tipo:inferirTipoVehiculo(nombre)}));
+  });
+  const lista=[...mapa.values()];
+  setVeh(lista);
+  return lista;
+}
+
+function ensureVehiculos(){
+  return reconstruirCatalogoVehiculos(getVeh());
+}
+
+function vehiculoPorNombre(nombre){ return getVeh().find(v=>v.nombre===nombre); }
+ensureVehiculos();
+
+const CONCEPTO_BY_CAT = {
+  'MercadoLibre':'Viaje MercadoLibre',
+  'Mudanza':'Mudanza',
+  'Evento':'Evento / transporte privado',
+  'Comisión Tercerizado':'Comisión por viaje tercerizado',
+  'Otro ingreso':'Otro ingreso',
+  'Gasoil':'Carga de combustible',
+  'Seguro':'Seguro del vehículo',
+  'Mantenimiento':'Mantenimiento del vehículo',
+  'Pago Chofer':'Pago a chofer (liquidación del día)',
+  'Sueldo CM':'Sueldo Community Manager',
+  'Suscripciones/Software':'Suscripción / software',
+  'Otros egresos':'Otro gasto'
+};
+const CATS_INGRESO = ['MercadoLibre','Mudanza','Evento','Comisión Tercerizado','Otro ingreso'];
+const CATS_EGRESO = ['Gasoil','Seguro','Mantenimiento','Pago Chofer','Sueldo CM','Suscripciones/Software','Otros egresos'];
+const CATEGORIA_TIPO = {};
+CATS_INGRESO.forEach(c=>CATEGORIA_TIPO[c]='Ingreso');
+CATS_EGRESO.forEach(c=>CATEGORIA_TIPO[c]='Egreso');
+
+function tarifaVigente(concepto, fechaISO){
+  const tarifas = getTar().filter(t=>t.concepto===concepto).sort((a,b)=>a.desde.localeCompare(b.desde));
+  let vigente = null;
+  for(const t of tarifas){
+    if(t.desde <= fechaISO) vigente = t; else break;
+  }
+  return vigente ? vigente.monto : null;
+}
+
+/* ============================================================
+   TABS
+============================================================ */
+document.querySelectorAll('nav.tabs button').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('nav.tabs button').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('view-'+btn.dataset.view).classList.add('active');
+    if(btn.dataset.view==='dashboard') renderDashboard();
+    if(btn.dataset.view==='movimientos') { renderClienteOptions(); renderVehiculoSelects(); renderMovTable(); }
+    if(btn.dataset.view==='vehiculos') renderVehiculoTable();
+    if(btn.dataset.view==='clientes') renderClienteTable();
+    if(btn.dataset.view==='tarifas') renderTarifaTable();
+    if(btn.dataset.view==='gastosfijos') { renderGastoFijoTable(); renderPendientesFijos(); }
+  });
+});
+
+/* ============================================================
+   MOVIMIENTOS: form + autofill
+============================================================ */
+const mFecha = document.getElementById('mFecha');
+const mVehiculo = document.getElementById('mVehiculo');
+const mCategoria = document.getElementById('mCategoria');
+const mTipoBadge = document.getElementById('mTipoBadge');
+const campoCobrado = document.getElementById('campoCobrado');
+const mCobrado = document.getElementById('mCobrado');
+const mConcepto = document.getElementById('mConcepto');
+const mCliente = document.getElementById('mCliente');
+const mChofer = document.getElementById('mChofer');
+const mMonto = document.getElementById('mMonto');
+const tarifaHint = document.getElementById('tarifaHint');
+const formMsg = document.getElementById('formMsg');
+const campoIngresoRelacionado = document.getElementById('campoIngresoRelacionado');
+const campoIngresoPuntual = document.getElementById('campoIngresoPuntual');
+const mCategoriaIngresoAsociada = document.getElementById('mCategoriaIngresoAsociada');
+const mIngresoRelacionado = document.getElementById('mIngresoRelacionado');
+
+mCategoriaIngresoAsociada.innerHTML = '<option value="">— Gasto general / sin asociar —</option>' +
+  CATS_INGRESO.map(c=>`<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
+
+// default date = today
+mFecha.value = new Date().toISOString().slice(0,10);
+
+function tipoActual(){ return CATEGORIA_TIPO[mCategoria.value] || ''; }
+
+function actualizarTipoBadge(){
+  const tipo = tipoActual();
+  mTipoBadge.classList.remove('ingreso','egreso');
+  if(tipo==='Ingreso'){
+    mTipoBadge.textContent = 'Ingreso';
+    mTipoBadge.classList.add('ingreso');
+    campoCobrado.style.display = '';
+    campoIngresoRelacionado.style.display = 'none';
+    campoIngresoPuntual.style.display = 'none';
+    mCategoriaIngresoAsociada.value = '';
+    mIngresoRelacionado.value = '';
+  } else if(tipo==='Egreso'){
+    mTipoBadge.textContent = 'Egreso';
+    mTipoBadge.classList.add('egreso');
+    campoCobrado.style.display = 'none';
+    campoIngresoRelacionado.style.display = '';
+    actualizarIngresoPuntual();
+  } else {
+    mTipoBadge.textContent = 'Elegí una categoría';
+    campoCobrado.style.display = 'none';
+    campoIngresoRelacionado.style.display = 'none';
+    campoIngresoPuntual.style.display = 'none';
+    mCategoriaIngresoAsociada.value = '';
+    mIngresoRelacionado.value = '';
+  }
+}
+
+function ingresoDescripcion(m){
+  const partes = [fmtDate(m.fecha), m.categoria || 'Ingreso'];
+  if(m.concepto && m.concepto!==m.categoria) partes.push(m.concepto);
+  if(m.cliente && m.cliente!=='N/A') partes.push(m.cliente);
+  if(m.vehiculo) partes.push(m.vehiculo);
+  return `${partes.join(' · ')} · ${fmtMoney(m.monto)}`;
+}
+
+function renderIngresoRelacionadoOptions(selectedId=''){
+  const categoria = mCategoriaIngresoAsociada.value;
+  const ingresos = categoria ? getMov().filter(m=>m.tipo==='Ingreso' && m.categoria===categoria)
+    .slice().sort((a,b)=> b.fecha.localeCompare(a.fecha) || ((b.seq||0)-(a.seq||0))) : [];
+  mIngresoRelacionado.innerHTML = '<option value="">— Sin especificar un ingreso puntual —</option>' +
+    ingresos.map(m=>`<option value="${escapeHtml(m.id)}">${escapeHtml(ingresoDescripcion(m))}</option>`).join('');
+  if(selectedId && ingresos.some(m=>m.id===selectedId)) mIngresoRelacionado.value = selectedId;
+  else mIngresoRelacionado.value = '';
+}
+
+function actualizarIngresoPuntual(selectedId=''){
+  const categoria = mCategoriaIngresoAsociada.value;
+  campoIngresoPuntual.style.display = categoria ? '' : 'none';
+  renderIngresoRelacionadoOptions(selectedId);
+}
+
+mCategoriaIngresoAsociada.addEventListener('change', ()=>actualizarIngresoPuntual());
+mIngresoRelacionado.addEventListener('change', ()=>{
+  const ing = ingresoRelacionadoPorId(mIngresoRelacionado.value);
+  if(ing && ing.categoria!==mCategoriaIngresoAsociada.value){
+    mCategoriaIngresoAsociada.value = ing.categoria;
+  }
+});
+
+function ingresoRelacionadoPorId(id){
+  if(!id) return null;
+  return getMov().find(m=>m.id===id && m.tipo==='Ingreso') || null;
+}
+
+function autofillFromCategoria(){
+  const cat = mCategoria.value;
+  actualizarTipoBadge();
+  mConcepto.value = CONCEPTO_BY_CAT[cat] || '';
+  if(cat==='MercadoLibre'){
+    mCliente.value = 'N/A';
+    const tarifa = tarifaVigente('MercadoLibre', mFecha.value);
+    if(tarifa!=null){
+      mMonto.value = tarifa;
+      tarifaHint.textContent = 'Tarifa vigente al ' + mFecha.value + ': $' + tarifa.toLocaleString('es-AR');
+    } else {
+      tarifaHint.textContent = 'No hay tarifa cargada para esa fecha — revisá la pestaña Tarifas.';
+    }
+  } else {
+    tarifaHint.textContent = '';
+    if(!CATS_INGRESO.includes(cat)) mCliente.value='';
+  }
+}
+mCategoria.addEventListener('change', autofillFromCategoria);
+mFecha.addEventListener('change', ()=>{ if(mCategoria.value==='MercadoLibre') autofillFromCategoria(); });
+
+mVehiculo.addEventListener('change', ()=>{
+  const veh = vehiculoPorNombre(mVehiculo.value);
+  if(veh && veh.chofer){
+    asegurarOpcionChofer(veh.chofer);
+    mChofer.value = veh.chofer;
+  }
+});
+
+function renderClienteOptions(){
+  const clientes = getCli();
+  const current = mCliente.value;
+  mCliente.innerHTML = '<option value="">—</option><option value="N/A">N/A</option>' +
+    clientes.map(c=>`<option>${escapeHtml(c.nombre)}</option>`).join('');
+  mCliente.value = current || '';
+}
+
+function clearFieldErrors(){
+  document.querySelectorAll('.field.invalid').forEach(f=>f.classList.remove('invalid'));
+  formMsg.style.display='none';
+}
+
+function markFieldError(el){
+  const field = el.closest('.field');
+  if(field) field.classList.add('invalid');
+}
+
+let ultimoIdGuardado = null;
+
+document.getElementById('formMov').addEventListener('submit', (e)=>{
+  e.preventDefault();
+  clearFieldErrors();
+
+  const faltantes = [];
+  if(!mVehiculo.value){ faltantes.push('Vehículo'); markFieldError(mVehiculo); }
+  if(!mCategoria.value){ faltantes.push('Categoría'); markFieldError(mCategoria); }
+  const montoNum = parseFloat(mMonto.value);
+  if(!mMonto.value || isNaN(montoNum) || montoNum<=0){ faltantes.push('Monto'); markFieldError(mMonto); }
+
+  if(faltantes.length>0){
+    formMsg.textContent = 'No se guardó: falta completar → ' + faltantes.join(', ') + '.';
+    formMsg.style.display = 'block';
+    return;
+  }
+
+  const tipo = tipoActual();
+  const editId = document.getElementById('mEditId').value;
+  const rec = {
+    id: editId || uid(),
+    seq: editId ? (getMov().find(m=>m.id===editId)||{}).seq || Date.now() : Date.now(),
+    fecha: mFecha.value,
+    vehiculo: mVehiculo.value,
+    tipo: tipo,
+    categoria: mCategoria.value,
+    concepto: mConcepto.value,
+    cliente: mCliente.value,
+    chofer: mChofer.value,
+    monto: montoNum,
+    cobrado: tipo==='Ingreso' ? (mCobrado.value==='si') : null,
+    categoriaIngresoAsociada: tipo==='Egreso' ? (mCategoriaIngresoAsociada.value || null) : null,
+    ingresoRelacionadoId: tipo==='Egreso' ? (mIngresoRelacionado.value || null) : null,
+    notas: document.getElementById('mNotas').value
+  };
+  let mov = getMov();
+  if(editId){
+    mov = mov.map(m=>m.id===editId?rec:m);
+  } else {
+    mov.push(rec);
+  }
+  setMov(mov);
+  ultimoIdGuardado = rec.id;
+
+  const keepFecha = mFecha.value;
+  e.target.reset();
+  mFecha.value = keepFecha; // same-day convenience: date sticks for the next entry
+  document.getElementById('mEditId').value='';
+  document.getElementById('mSubmitBtn').textContent='Guardar movimiento';
+  document.getElementById('mCancelEdit').style.display='none';
+  tarifaHint.textContent='';
+  mCategoriaIngresoAsociada.value='';
+  mIngresoRelacionado.value='';
+  campoIngresoPuntual.style.display='none';
+  actualizarTipoBadge();
+
+  // clear filters so the new/edited row is guaranteed visible, then highlight it
+  document.getElementById('filtroVeh').value='';
+  document.getElementById('filtroMes').value='';
+  [...document.getElementById('filtroCategorias').options].forEach(o=>o.selected=false);
+  renderMovTable();
+  renderDashboard();
+
+  setTimeout(()=>{
+    const row = document.querySelector(`tr[data-id="${rec.id}"]`);
+    if(row){
+      row.classList.add('fila-nueva');
+      if(row.scrollIntoView) row.scrollIntoView({behavior:'smooth', block:'center'});
+    }
+  }, 50);
+});
+
+document.getElementById('mCancelEdit').addEventListener('click', ()=>{
+  document.getElementById('formMov').reset();
+  mFecha.value = new Date().toISOString().slice(0,10);
+  document.getElementById('mEditId').value='';
+  document.getElementById('mSubmitBtn').textContent='Guardar movimiento';
+  document.getElementById('mCancelEdit').style.display='none';
+  clearFieldErrors();
+  mCategoriaIngresoAsociada.value='';
+  mIngresoRelacionado.value='';
+  campoIngresoPuntual.style.display='none';
+  actualizarTipoBadge();
+});
+
+function editMov(id){
+  const rec = getMov().find(m=>m.id===id);
+  if(!rec) return;
+  clearFieldErrors();
+  mFecha.value = rec.fecha;
+  mVehiculo.value = rec.vehiculo;
+  mCategoria.value = rec.categoria;
+  actualizarTipoBadge();
+  if(rec.tipo==='Egreso'){
+    const ingresoViejo = ingresoRelacionadoPorId(rec.ingresoRelacionadoId);
+    mCategoriaIngresoAsociada.value = rec.categoriaIngresoAsociada || (ingresoViejo ? ingresoViejo.categoria : '');
+    actualizarIngresoPuntual(rec.ingresoRelacionadoId || '');
+  }
+  mConcepto.value = rec.concepto;
+  renderClienteOptions();
+  mCliente.value = rec.cliente;
+  mChofer.value = rec.chofer;
+  mMonto.value = rec.monto;
+  if(rec.tipo==='Ingreso') mCobrado.value = rec.cobrado===false ? 'no' : 'si';
+  document.getElementById('mNotas').value = rec.notas||'';
+  document.getElementById('mEditId').value = id;
+  document.getElementById('mSubmitBtn').textContent='Guardar cambios';
+  document.getElementById('mCancelEdit').style.display='inline-block';
+  document.querySelector('nav.tabs button[data-view="movimientos"]').click();
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+function deleteMov(id){
+  if(!confirm('¿Eliminar este movimiento? No se puede deshacer.')) return;
+  setMov(getMov().filter(m=>m.id!==id));
+  renderMovTable();
+  renderDashboard();
+}
+
+function marcarCobrado(id){
+  const mov = getMov().map(m=> m.id===id ? {...m, cobrado:true} : m);
+  setMov(mov);
+  renderMovTable();
+}
+
+function poblarFiltroCategorias(){
+  const sel = document.getElementById('filtroCategorias');
+  const todas = [...CATS_INGRESO, ...CATS_EGRESO];
+  sel.innerHTML = todas.map(c=>`<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
+}
+
+function renderMovTable(){
+  const filtroVeh = document.getElementById('filtroVeh').value;
+  const filtroMes = document.getElementById('filtroMes').value; // yyyy-mm
+  const filtroCats = [...document.getElementById('filtroCategorias').selectedOptions].map(o=>o.value);
+  let mov = getMov().slice().sort((a,b)=> b.fecha.localeCompare(a.fecha) || ((b.seq||0)-(a.seq||0)) );
+  if(filtroVeh) mov = mov.filter(m=>m.vehiculo===filtroVeh);
+  if(filtroMes) mov = mov.filter(m=>m.fecha.slice(0,7)===filtroMes);
+  if(filtroCats.length>0) mov = mov.filter(m=>filtroCats.includes(m.categoria));
+
+  const tbody = document.getElementById('movTable');
+  if(mov.length===0){
+    tbody.innerHTML = `<tr><td colspan="10"><div class="empty-state">No hay movimientos que coincidan con el filtro.</div></td></tr>`;
+  } else {
+    tbody.innerHTML = mov.slice(0,300).map(m=>{
+      const debe = m.tipo==='Ingreso' && m.cobrado===false;
+      return `
+      <tr data-id="${m.id}" class="${debe?'fila-debiendo':''}">
+        <td>${fmtDate(m.fecha)}</td>
+        <td>${escapeHtml(m.vehiculo)}</td>
+        <td><span class="tag ${m.tipo==='Ingreso'?'ingreso':'egreso'}">${m.tipo}</span>${debe?'<span class="badge-debe">DEBE</span>':''}</td>
+        <td>${escapeHtml(m.categoria)}</td>
+        <td>
+          ${escapeHtml(m.concepto||'')}
+          ${m.notas ? `<div class="nota-chip" title="${escapeHtml(m.notas)}">📝 ${escapeHtml(m.notas)}</div>` : ''}
+        </td>
+        <td>${escapeHtml(m.cliente||'')}</td>
+        <td>${escapeHtml(m.chofer||'')}</td>
+        <td>${m.tipo==='Egreso' ? (()=>{ const ing=ingresoRelacionadoPorId(m.ingresoRelacionadoId); if(ing) return `<span class="muted" title="${escapeHtml(ingresoDescripcion(ing))}">${escapeHtml(ing.categoria)} · ${fmtDate(ing.fecha)}</span>`; if(m.categoriaIngresoAsociada) return `<span class="muted">${escapeHtml(m.categoriaIngresoAsociada)} · sin ingreso puntual</span>`; return m.ingresoRelacionadoId ? '<span class="muted">Ingreso no disponible</span>' : '<span class="muted">General</span>'; })() : '—'}</td>
+        <td class="num ${m.tipo==='Ingreso'?'pos':'neg'}">${fmtMoney(m.monto)}</td>
+        <td class="row-actions">
+          ${debe?`<button class="btn secondary small" onclick="marcarCobrado('${m.id}')">Marcar cobrado</button>`:''}
+          <button class="btn secondary small" onclick="editMov('${m.id}')">Editar</button>
+          <button class="btn danger" onclick="deleteMov('${m.id}')">Borrar</button>
+        </td>
+      </tr>
+    `;
+    }).join('');
+  }
+  document.getElementById('movCount').textContent = `${mov.length} movimiento(s)` + (mov.length>300?' — mostrando los primeros 300':'');
+}
+poblarFiltroCategorias();
+document.getElementById('filtroVeh').addEventListener('change', renderMovTable);
+document.getElementById('filtroMes').addEventListener('change', renderMovTable);
+document.getElementById('filtroCategorias').addEventListener('change', renderMovTable);
+document.getElementById('limpiarFiltros').addEventListener('click', ()=>{
+  document.getElementById('filtroVeh').value='';
+  document.getElementById('filtroMes').value='';
+  [...document.getElementById('filtroCategorias').options].forEach(o=>o.selected=false);
+  renderMovTable();
+});
+
+/* ============================================================
+   VEHICULOS
+============================================================ */
+function asegurarOpcionChofer(nombre){
+  if(!nombre) return;
+  if(![...mChofer.options].some(o=>o.value===nombre)){
+    const opt=document.createElement('option'); opt.value=nombre; opt.textContent=nombre; mChofer.appendChild(opt);
+  }
+}
+
+function renderChoferOptions(){
+  const current=mChofer.value;
+  const nombres=new Set(['Walter','Claudio','Georgi','N/A']);
+  getVeh().forEach(v=>{ if(v.chofer) nombres.add(v.chofer); });
+  getMov().forEach(m=>{ if(m.chofer) nombres.add(m.chofer); });
+  mChofer.innerHTML='<option value="">—</option>'+[...nombres].sort((a,b)=>a.localeCompare(b,'es')).map(n=>`<option>${escapeHtml(n)}</option>`).join('');
+  if(current) asegurarOpcionChofer(current);
+  mChofer.value=current||'';
+}
+
+function renderVehiculoSelects(){
+  const catalogo=ensureVehiculos();
+  const activos=catalogo.filter(v=>v.activo!==false).sort((a,b)=>a.nombre.localeCompare(b.nombre,'es'));
+  const currentMov=mVehiculo.value;
+  mVehiculo.innerHTML='<option value="">Elegir…</option>'+activos.map(v=>`<option>${escapeHtml(v.nombre)}</option>`).join('');
+  if(currentMov && ![...mVehiculo.options].some(o=>o.value===currentMov)) mVehiculo.innerHTML += `<option>${escapeHtml(currentMov)}</option>`;
+  mVehiculo.value=currentMov||'';
+
+  const gfSel=document.getElementById('gfVehiculo');
+  const currentGF=gfSel.value;
+  gfSel.innerHTML=activos.map(v=>`<option>${escapeHtml(v.nombre)}</option>`).join('');
+  if(currentGF && ![...gfSel.options].some(o=>o.value===currentGF)) gfSel.innerHTML += `<option>${escapeHtml(currentGF)}</option>`;
+  if(currentGF) gfSel.value=currentGF;
+
+  const filtro=document.getElementById('filtroVeh');
+  const currentFiltro=filtro.value;
+  const nombresFiltro=new Set(catalogo.map(v=>v.nombre));
+  getMov().forEach(m=>{ if(m.vehiculo) nombresFiltro.add(m.vehiculo); });
+  filtro.innerHTML='<option value="">Todos</option>'+[...nombresFiltro].sort((a,b)=>a.localeCompare(b,'es')).map(n=>`<option>${escapeHtml(n)}</option>`).join('');
+  if([...filtro.options].some(o=>o.value===currentFiltro)) filtro.value=currentFiltro;
+
+  renderChoferOptions();
+}
+
+function resetVehiculoForm(){
+  document.getElementById('formVehiculo').reset();
+  document.getElementById('vEditId').value='';
+  document.getElementById('vSubmitBtn').textContent='Agregar vehículo';
+  document.getElementById('vCancelEdit').style.display='none';
+  document.getElementById('vehiculoFormTitle').textContent='Nuevo vehículo';
+  document.getElementById('vehiculoMsg').style.display='none';
+}
+
+document.getElementById('formVehiculo').addEventListener('submit', (e)=>{
+  e.preventDefault();
+  const msg=document.getElementById('vehiculoMsg');
+  const editId=document.getElementById('vEditId').value;
+  const nombre=document.getElementById('vNombre').value.trim();
+  if(!nombre){ msg.textContent='Ingresá un nombre o identificación.'; msg.style.display='block'; return; }
+  const veh=getVeh();
+  if(veh.some(v=>v.nombre.toLowerCase()===nombre.toLowerCase() && v.id!==editId)){
+    msg.textContent='Ya existe un vehículo con ese nombre.'; msg.style.display='block'; return;
+  }
+  const anterior=editId ? veh.find(v=>v.id===editId) : null;
+  const rec=normalizarVehiculo({
+    id:editId||uid(), nombre,
+    tipo:document.getElementById('vTipo').value,
+    chofer:document.getElementById('vChofer').value,
+    notas:document.getElementById('vNotas').value,
+    activo:anterior ? anterior.activo : true
+  });
+  let lista=veh;
+  if(anterior && anterior.nombre!==nombre){
+    setMov(getMov().map(m=>m.vehiculo===anterior.nombre ? {...m,vehiculo:nombre} : m));
+    setGF(getGF().map(g=>g.vehiculo===anterior.nombre ? {...g,vehiculo:nombre} : g));
+  }
+  lista=editId ? lista.map(v=>v.id===editId?rec:v) : [...lista,rec];
+  setVeh(lista);
+  resetVehiculoForm(); renderVehiculoTable(); renderVehiculoSelects(); renderMovTable(); renderGastoFijoTable(); renderDashboard();
+});
+
+document.getElementById('vCancelEdit').addEventListener('click', resetVehiculoForm);
+
+function editVehiculo(id){
+  const v=getVeh().find(x=>x.id===id); if(!v) return;
+  document.getElementById('vNombre').value=v.nombre;
+  document.getElementById('vTipo').value=v.tipo;
+  document.getElementById('vChofer').value=v.chofer||'';
+  document.getElementById('vNotas').value=v.notas||'';
+  document.getElementById('vEditId').value=id;
+  document.getElementById('vSubmitBtn').textContent='Guardar cambios';
+  document.getElementById('vCancelEdit').style.display='inline-block';
+  document.getElementById('vehiculoFormTitle').textContent='Editar vehículo';
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function toggleVehiculo(id){
+  setVeh(getVeh().map(v=>v.id===id?{...v,activo:v.activo===false}:v));
+  renderVehiculoTable(); renderVehiculoSelects(); renderDashboard();
+}
+
+function renderVehiculoTable(){
+  const veh=getVeh().slice().sort((a,b)=>Number(b.activo!==false)-Number(a.activo!==false) || a.nombre.localeCompare(b.nombre,'es'));
+  const tbody=document.getElementById('vehiculoTable');
+  if(!veh.length){ tbody.innerHTML='<tr><td colspan="6"><div class="empty-state">Todavía no hay vehículos.</div></td></tr>'; return; }
+  tbody.innerHTML=veh.map(v=>`<tr>
+    <td><b>${escapeHtml(v.nombre)}</b></td>
+    <td>${escapeHtml(v.tipo)}</td>
+    <td>${escapeHtml(v.chofer||'—')}</td>
+    <td><span class="tag ${v.activo!==false?'ingreso':'egreso'}">${v.activo!==false?'Activo':'Inactivo'}</span></td>
+    <td>${escapeHtml(v.notas||'')}</td>
+    <td class="row-actions">
+      <button class="btn secondary small" onclick="editVehiculo('${v.id}')">Editar</button>
+      <button class="btn ${v.activo!==false?'danger':'secondary'} small" onclick="toggleVehiculo('${v.id}')">${v.activo!==false?'Desactivar':'Activar'}</button>
+    </td>
+  </tr>`).join('');
+}
+
+/* ============================================================
+   CLIENTES
+============================================================ */
+document.getElementById('formCliente').addEventListener('submit', (e)=>{
+  e.preventDefault();
+  const editId = document.getElementById('cEditId').value;
+  const rec = {
+    id: editId || uid(),
+    nombre: document.getElementById('cNombre').value,
+    tipo: document.getElementById('cTipo').value,
+    telefono: document.getElementById('cTelefono').value,
+    zona: document.getElementById('cZona').value,
+    notas: document.getElementById('cNotas').value
+  };
+  let cli = getCli();
+  if(editId){
+    cli = cli.map(c=>c.id===editId?rec:c);
+  } else {
+    cli.push(rec);
+  }
+  setCli(cli);
+  e.target.reset();
+  document.getElementById('cEditId').value='';
+  document.getElementById('cSubmitBtn').textContent='Agregar cliente';
+  document.getElementById('cCancelEdit').style.display='none';
+  document.getElementById('clienteFormTitle').textContent='Nuevo cliente';
+  renderClienteTable();
+  renderClienteOptions();
+});
+document.getElementById('cCancelEdit').addEventListener('click', ()=>{
+  document.getElementById('formCliente').reset();
+  document.getElementById('cEditId').value='';
+  document.getElementById('cSubmitBtn').textContent='Agregar cliente';
+  document.getElementById('cCancelEdit').style.display='none';
+  document.getElementById('clienteFormTitle').textContent='Nuevo cliente';
+});
+function editCliente(id){
+  const rec = getCli().find(c=>c.id===id);
+  if(!rec) return;
+  document.getElementById('cNombre').value = rec.nombre;
+  document.getElementById('cTipo').value = rec.tipo;
+  document.getElementById('cTelefono').value = rec.telefono||'';
+  document.getElementById('cZona').value = rec.zona||'';
+  document.getElementById('cNotas').value = rec.notas||'';
+  document.getElementById('cEditId').value = id;
+  document.getElementById('cSubmitBtn').textContent='Guardar cambios';
+  document.getElementById('cCancelEdit').style.display='inline-block';
+  document.getElementById('clienteFormTitle').textContent='Editando cliente';
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+function deleteCliente(id){
+  if(!confirm('¿Eliminar este cliente?')) return;
+  setCli(getCli().filter(c=>c.id!==id));
+  renderClienteTable();
+  renderClienteOptions();
+}
+function renderClienteTable(){
+  const cli = getCli();
+  const tbody = document.getElementById('clienteTable');
+  if(cli.length===0){
+    tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state">Todavía no cargaste clientes.</div></td></tr>`;
+    return;
+  }
+  tbody.innerHTML = cli.map(c=>`
+    <tr>
+      <td>${escapeHtml(c.nombre)}</td>
+      <td>${escapeHtml(c.tipo)}</td>
+      <td>${escapeHtml(c.telefono||'')}</td>
+      <td>${escapeHtml(c.zona||'')}</td>
+      <td>${escapeHtml(c.notas||'')}</td>
+      <td class="row-actions">
+        <button class="btn secondary small" onclick="editCliente('${c.id}')">Editar</button>
+        <button class="btn danger" onclick="deleteCliente('${c.id}')">Borrar</button>
+      </td>
+    </tr>
+  `).join('');
+}
+
+/* ============================================================
+   TARIFAS
+============================================================ */
+document.getElementById('formTarifa').addEventListener('submit', (e)=>{
+  e.preventDefault();
+  const rec = {
+    id: uid(),
+    concepto: document.getElementById('tConcepto').value,
+    desde: document.getElementById('tDesde').value,
+    monto: parseFloat(document.getElementById('tMonto').value)||0
+  };
+  const tar = getTar(); tar.push(rec); setTar(tar);
+  e.target.reset();
+  renderTarifaTable();
+});
+function deleteTarifa(id){
+  if(!confirm('¿Eliminar esta tarifa histórica?')) return;
+  setTar(getTar().filter(t=>t.id!==id));
+  renderTarifaTable();
+}
+function renderTarifaTable(){
+  const tar = getTar().slice().sort((a,b)=>a.desde.localeCompare(b.desde));
+  const tbody = document.getElementById('tarifaTable');
+  if(tar.length===0){
+    tbody.innerHTML = `<tr><td colspan="5"><div class="empty-state">No hay tarifas cargadas.</div></td></tr>`;
+    return;
+  }
+  tbody.innerHTML = tar.map((t,i)=>{
+    const next = tar[i+1];
+    const hasta = next ? fmtDate(addDays(next.desde,-1)) : 'Vigente';
+    return `
+    <tr>
+      <td>${escapeHtml(t.concepto)}</td>
+      <td>${fmtDate(t.desde)}</td>
+      <td>${hasta}</td>
+      <td class="num">${fmtMoney(t.monto)}</td>
+      <td><button class="btn danger" onclick="deleteTarifa('${t.id}')">Borrar</button></td>
+    </tr>`;
+  }).join('');
+}
+
+/* ============================================================
+   GASTOS FIJOS
+============================================================ */
+const gfCategoria = document.getElementById('gfCategoria');
+gfCategoria.innerHTML = CATS_EGRESO.map(c=>`<option>${escapeHtml(c)}</option>`).join('');
+
+document.getElementById('formGastoFijo').addEventListener('submit', (e)=>{
+  e.preventDefault();
+  const editId = document.getElementById('gfEditId').value;
+  const rec = {
+    id: editId || uid(),
+    concepto: document.getElementById('gfConcepto').value,
+    vehiculo: document.getElementById('gfVehiculo').value,
+    categoria: gfCategoria.value,
+    monto: parseFloat(document.getElementById('gfMonto').value)||0,
+    notas: document.getElementById('gfNotas').value
+  };
+  let gf = getGF();
+  if(editId){
+    gf = gf.map(g=>g.id===editId?rec:g);
+  } else {
+    gf.push(rec);
+  }
+  setGF(gf);
+  e.target.reset();
+  document.getElementById('gfEditId').value='';
+  document.getElementById('gfSubmitBtn').textContent='Agregar gasto fijo';
+  document.getElementById('gfCancelEdit').style.display='none';
+  renderGastoFijoTable();
+  renderPendientesFijos();
+});
+document.getElementById('gfCancelEdit').addEventListener('click', ()=>{
+  document.getElementById('formGastoFijo').reset();
+  document.getElementById('gfEditId').value='';
+  document.getElementById('gfSubmitBtn').textContent='Agregar gasto fijo';
+  document.getElementById('gfCancelEdit').style.display='none';
+});
+function editGastoFijo(id){
+  const rec = getGF().find(g=>g.id===id);
+  if(!rec) return;
+  document.getElementById('gfConcepto').value = rec.concepto;
+  document.getElementById('gfVehiculo').value = rec.vehiculo;
+  gfCategoria.value = rec.categoria;
+  document.getElementById('gfMonto').value = rec.monto;
+  document.getElementById('gfNotas').value = rec.notas||'';
+  document.getElementById('gfEditId').value = id;
+  document.getElementById('gfSubmitBtn').textContent='Guardar cambios';
+  document.getElementById('gfCancelEdit').style.display='inline-block';
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+function deleteGastoFijo(id){
+  if(!confirm('¿Eliminar este gasto fijo? (no borra movimientos ya cargados, solo la definición)')) return;
+  setGF(getGF().filter(g=>g.id!==id));
+  renderGastoFijoTable();
+  renderPendientesFijos();
+}
+function renderGastoFijoTable(){
+  const gf = getGF();
+  const tbody = document.getElementById('gastoFijoTable');
+  if(gf.length===0){
+    tbody.innerHTML = `<tr><td colspan="5"><div class="empty-state">Todavía no definiste gastos fijos.</div></td></tr>`;
+    return;
+  }
+  tbody.innerHTML = gf.map(g=>`
+    <tr>
+      <td>${escapeHtml(g.concepto)}</td>
+      <td>${escapeHtml(g.vehiculo)}</td>
+      <td>${escapeHtml(g.categoria)}</td>
+      <td class="num">${fmtMoney(g.monto)}</td>
+      <td class="row-actions">
+        <button class="btn secondary small" onclick="editGastoFijo('${g.id}')">Editar</button>
+        <button class="btn danger" onclick="deleteGastoFijo('${g.id}')">Borrar</button>
+      </td>
+    </tr>
+  `).join('');
+}
+
+function yaCargadoEsteMes(gasto){
+  const mesActual = new Date().toISOString().slice(0,7);
+  return getMov().some(m =>
+    m.concepto === gasto.concepto &&
+    m.vehiculo === gasto.vehiculo &&
+    m.fecha.slice(0,7) === mesActual
+  );
+}
+
+function cargarGastoFijo(id){
+  const gasto = getGF().find(g=>g.id===id);
+  if(!gasto) return;
+  const rec = {
+    id: uid(),
+    seq: Date.now(),
+    fecha: new Date().toISOString().slice(0,10),
+    vehiculo: gasto.vehiculo,
+    tipo: 'Egreso',
+    categoria: gasto.categoria,
+    concepto: gasto.concepto,
+    cliente: '',
+    chofer: (vehiculoPorNombre(gasto.vehiculo)||{}).chofer || '',
+    monto: gasto.monto,
+    cobrado: null,
+    notas: gasto.notas || ''
+  };
+  const mov = getMov(); mov.push(rec); setMov(mov);
+  renderPendientesFijos();
+  renderDashboard();
+}
+
+function renderPendientesFijos(){
+  const gf = getGF();
+  const cont = document.getElementById('pendientesFijos');
+  if(gf.length===0){
+    cont.innerHTML = `<div class="empty-state">Todavía no definiste ningún gasto fijo — agregá uno abajo.</div>`;
+    return;
+  }
+  const pendientes = gf.filter(g=>!yaCargadoEsteMes(g));
+  if(pendientes.length===0){
+    cont.innerHTML = `<div class="empty-state">✅ Ya cargaste todos los gastos fijos de este mes.</div>`;
+    return;
+  }
+  cont.innerHTML = pendientes.map(g=>`
+    <div style="display:flex; align-items:center; justify-content:space-between; padding:10px 12px; background:var(--gris-800); border-radius:8px; margin-bottom:8px;">
+      <div>
+        <b>${escapeHtml(g.concepto)}</b>
+        <span class="muted"> — ${escapeHtml(g.vehiculo)} · ${escapeHtml(g.categoria)}</span>
+      </div>
+      <button class="btn" onclick="cargarGastoFijo('${g.id}')">Cargar ${fmtMoney(g.monto)}</button>
+    </div>
+  `).join('');
+}
+
+/* ============================================================
+   DASHBOARD
+============================================================ */
+const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+const dashMes = document.getElementById('dashMes');
+MESES.forEach((m,i)=>{
+  const opt = document.createElement('option');
+  opt.value = i+1; opt.textContent = m;
+  dashMes.appendChild(opt);
+});
+const now = new Date();
+dashMes.value = now.getMonth()+1;
+document.getElementById('dashAnio').value = now.getFullYear();
+
+function fechaISO(d){ return d.toISOString().slice(0,10); }
+function semanaActualValor(){
+  // yyyy-Www del día de hoy, para precargar el input type=week
+  const d = new Date();
+  const target = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  const dayNum = (target.getUTCDay() + 6) % 7;
+  target.setUTCDate(target.getUTCDate() - dayNum + 3);
+  const firstThursday = new Date(Date.UTC(target.getUTCFullYear(),0,4));
+  const week = 1 + Math.round(((target - firstThursday) / 86400000 - 3 + ((firstThursday.getUTCDay()+6)%7)) / 7);
+  return `${target.getUTCFullYear()}-W${String(week).padStart(2,'0')}`;
+}
+document.getElementById('dashSemana').value = semanaActualValor();
+
+function isoWeekToRange(weekString){
+  const [yearStr, wStr] = weekString.split('-W');
+  const year = parseInt(yearStr,10), week = parseInt(wStr,10);
+  const simple = new Date(Date.UTC(year,0,1 + (week-1)*7));
+  const dayOfWeek = simple.getUTCDay() || 7;
+  const start = new Date(simple);
+  if(dayOfWeek<=4) start.setUTCDate(simple.getUTCDate()-dayOfWeek+1);
+  else start.setUTCDate(simple.getUTCDate()+8-dayOfWeek);
+  const end = new Date(start); end.setUTCDate(start.getUTCDate()+6);
+  return { start: fechaISO(start), end: fechaISO(end) };
+}
+
+function actualizarModoDashboard(){
+  const modo = document.getElementById('dashModo').value;
+  document.getElementById('campoMes').style.display = modo==='mes' ? '' : 'none';
+  document.getElementById('campoAnio').style.display = modo==='mes' ? '' : 'none';
+  document.getElementById('campoSemana').style.display = modo==='semana' ? '' : 'none';
+  renderDashboard();
+}
+document.getElementById('dashModo').addEventListener('change', actualizarModoDashboard);
+dashMes.addEventListener('change', renderDashboard);
+document.getElementById('dashAnio').addEventListener('change', renderDashboard);
+document.getElementById('dashSemana').addEventListener('change', renderDashboard);
+
+function renderDashboard(){
+  const modo = document.getElementById('dashModo').value;
+  let desde, hasta, etiquetaPeriodo;
+  if(modo==='semana'){
+    const r = isoWeekToRange(document.getElementById('dashSemana').value || semanaActualValor());
+    desde = r.start; hasta = r.end;
+    etiquetaPeriodo = `Semana del ${fmtDate(desde)} al ${fmtDate(hasta)}`;
+  } else {
+    const mes = parseInt(dashMes.value);
+    const anio = parseInt(document.getElementById('dashAnio').value);
+    const first = new Date(Date.UTC(anio, mes-1, 1));
+    const last = new Date(Date.UTC(anio, mes, 0));
+    desde = fechaISO(first); hasta = fechaISO(last);
+    etiquetaPeriodo = `${MESES[mes-1]} ${anio}`;
+  }
+  const mov = getMov().filter(m => m.fecha >= desde && m.fecha <= hasta);
+
+  const totIng = mov.filter(m=>m.tipo==='Ingreso').reduce((s,m)=>s+m.monto,0);
+  const totEgr = mov.filter(m=>m.tipo==='Egreso').reduce((s,m)=>s+m.monto,0);
+  const pendiente = mov.filter(m=>m.tipo==='Ingreso' && m.cobrado===false).reduce((s,m)=>s+m.monto,0);
+
+  document.getElementById('kpiRow').innerHTML = `
+    <div class="kpi"><div class="label">Ingresos — ${etiquetaPeriodo}</div><div class="value" style="color:var(--verde)">${fmtMoney(totIng)}</div></div>
+    <div class="kpi"><div class="label">Egresos — ${etiquetaPeriodo}</div><div class="value" style="color:var(--rojo)">${fmtMoney(totEgr)}</div></div>
+    <div class="kpi total"><div class="label">Neto del período</div><div class="value">${fmtMoney(totIng-totEgr)}</div></div>
+    <div class="kpi"><div class="label">Pendiente de cobro</div><div class="value" style="color:${pendiente>0?'var(--rojo)':'var(--gris-300)'}">${fmtMoney(pendiente)}</div></div>
+    <div class="kpi"><div class="label">Movimientos cargados</div><div class="value">${mov.length}</div></div>
+  `;
+
+  const vehiculosPeriodo = [...new Set([...getVeh().filter(v=>v.activo!==false).map(v=>v.nombre), ...mov.map(m=>m.vehiculo).filter(Boolean)])].sort((a,b)=>a.localeCompare(b,'es'));
+  document.getElementById('dashVehTable').innerHTML = vehiculosPeriodo.map(v=>{
+    const ing = mov.filter(m=>m.vehiculo===v && m.tipo==='Ingreso').reduce((s,m)=>s+m.monto,0);
+    const egr = mov.filter(m=>m.vehiculo===v && m.tipo==='Egreso').reduce((s,m)=>s+m.monto,0);
+    return `<tr><td>${v}</td><td class="num pos">${fmtMoney(ing)}</td><td class="num neg">${fmtMoney(egr)}</td><td class="num">${fmtMoney(ing-egr)}</td></tr>`;
+  }).join('');
+
+  document.getElementById('dashIngCatTable').innerHTML = CATS_INGRESO.map(cat=>{
+    const total = mov.filter(m=>m.categoria===cat).reduce((s,m)=>s+m.monto,0);
+    return `<tr><td>${cat}</td><td class="num pos">${fmtMoney(total)}</td></tr>`;
+  }).join('');
+
+  document.getElementById('dashCatTable').innerHTML = CATS_EGRESO.map(cat=>{
+    const total = mov.filter(m=>m.categoria===cat).reduce((s,m)=>s+m.monto,0);
+    return `<tr><td>${cat}</td><td class="num neg">${fmtMoney(total)}</td></tr>`;
+  }).join('');
+
+  // Rentabilidad directa por categoría:
+  // 1) Los egresos asociados sólo a una categoría se cuentan por la fecha propia del egreso dentro del período.
+  // 2) Los egresos asociados a un ingreso puntual siguen a ese ingreso, aunque el pago se haya registrado fuera del período.
+  // 3) Un egreso puntual se cuenta una sola vez, nunca también como asociación genérica por categoría.
+  const todosMov = getMov();
+  document.getElementById('dashRentCatTable').innerHTML = CATS_INGRESO.map(cat=>{
+    const ingresosCat = mov.filter(m=>m.tipo==='Ingreso' && m.categoria===cat);
+    const ids = new Set(ingresosCat.map(m=>m.id));
+    const ingresos = ingresosCat.reduce((s,m)=>s+m.monto,0);
+    const costosPuntuales = todosMov.filter(m=>m.tipo==='Egreso' && m.ingresoRelacionadoId && ids.has(m.ingresoRelacionadoId)).reduce((s,m)=>s+m.monto,0);
+    const costosCategoria = mov.filter(m=>m.tipo==='Egreso' && !m.ingresoRelacionadoId && m.categoriaIngresoAsociada===cat).reduce((s,m)=>s+m.monto,0);
+    const costos = costosPuntuales + costosCategoria;
+    const resultado = ingresos-costos;
+    return `<tr><td>${cat}</td><td class="num pos">${fmtMoney(ingresos)}</td><td class="num neg">${fmtMoney(costos)}</td><td class="num ${resultado>=0?'pos':'neg'}">${fmtMoney(resultado)}</td></tr>`;
+  }).join('');
+
+  renderChart();
+}
+
+function renderChart(){
+  const allMov = getMov();
+  if(allMov.length===0){
+    document.getElementById('chartBars').innerHTML = '<div class="empty-state">Todavía no hay datos para graficar.</div>';
+    return;
+  }
+  const byMonth = {};
+  allMov.forEach(m=>{
+    const key = m.fecha.slice(0,7);
+    if(!byMonth[key]) byMonth[key] = {ingreso:0, egreso:0};
+    byMonth[key][m.tipo==='Ingreso'?'ingreso':'egreso'] += m.monto;
+  });
+  const months = Object.keys(byMonth).sort().slice(-12);
+  const maxVal = Math.max(...months.map(k=>Math.max(byMonth[k].ingreso, byMonth[k].egreso)), 1);
+  document.getElementById('chartBars').innerHTML = months.map(k=>{
+    const ing = byMonth[k].ingreso, egr = byMonth[k].egreso;
+    const hIng = Math.round((ing/maxVal)*160);
+    const hEgr = Math.round((egr/maxVal)*160);
+    const [y,mo] = k.split('-');
+    const label = MESES[parseInt(mo)-1].slice(0,3)+' '+y.slice(2);
+    return `<div class="bar-col">
+      <div class="bar-group">
+        <div class="bar ingreso" style="height:${hIng}px" title="Ingresos: ${fmtMoney(ing)}"></div>
+        <div class="bar egreso" style="height:${hEgr}px" title="Egresos: ${fmtMoney(egr)}"></div>
+      </div>
+      <div class="bar-label">${label}</div>
+    </div>`;
+  }).join('');
+}
+
+/* ============================================================
+   RESPALDO (export / import)
+============================================================ */
+document.getElementById('btnExportJSON').addEventListener('click', ()=>{
+  const payload = {
+    schemaVersion: 5,
+    exportado: new Date().toISOString(),
+    movimientos: getMov(),
+    clientes: getCli(),
+    tarifas: getTar(),
+    gastosFijos: getGF(),
+    vehiculos: getVeh()
+  };
+  downloadBlob(JSON.stringify(payload, null, 2), 'application/json', `cyg-respaldo-${todayStr()}.json`);
+});
+
+document.getElementById('btnExportCSV').addEventListener('click', ()=>{
+  const mov = getMov().slice().sort((a,b)=>a.fecha.localeCompare(b.fecha));
+  const header = ['Fecha','Vehiculo','Tipo','Categoria','Concepto','Cliente','Chofer','Categoria de ingreso asociada','Ingreso asociado ID','Monto','Notas'];
+  const rows = mov.map(m=>[m.fecha,m.vehiculo,m.tipo,m.categoria,m.concepto,m.cliente,m.chofer,m.categoriaIngresoAsociada||'',m.ingresoRelacionadoId||'',m.monto,m.notas]);
+  const csv = [header, ...rows].map(r=>r.map(csvEscape).join(';')).join('\n');
+  downloadBlob('\uFEFF'+csv, 'text/csv', `cyg-movimientos-${todayStr()}.csv`);
+});
+
+document.getElementById('btnImportJSON').addEventListener('click', ()=>{
+  const file = document.getElementById('fileImport').files[0];
+  const msg = document.getElementById('importMsg');
+  if(!file){ msg.textContent = 'Elegí un archivo primero.'; msg.style.color='var(--rojo)'; return; }
+  const reader = new FileReader();
+  reader.onload = (e)=>{
+    try{
+      const data = JSON.parse(e.target.result);
+      if(!confirm('Esto va a REEMPLAZAR todos los datos actuales de este navegador. ¿Continuar?')) return;
+      if(data.movimientos!==undefined && !Array.isArray(data.movimientos)) throw new Error('movimientos inválidos');
+      if(data.clientes!==undefined && !Array.isArray(data.clientes)) throw new Error('clientes inválidos');
+      if(data.tarifas!==undefined && !Array.isArray(data.tarifas)) throw new Error('tarifas inválidas');
+      setMov(Array.isArray(data.movimientos)?data.movimientos:[]);
+      setCli(Array.isArray(data.clientes)?data.clientes:[]);
+      setTar(Array.isArray(data.tarifas)?data.tarifas:[]);
+      // Los respaldos anteriores a v3 no incluían gastos fijos ni catálogo de vehículos.
+      setGF(Array.isArray(data.gastosFijos)?data.gastosFijos:(Array.isArray(data.gastos_fijos)?data.gastos_fijos:[]));
+      setVeh(Array.isArray(data.vehiculos)?data.vehiculos:[]);
+      ensureVehiculos(); // reconstruye vehículos desde movimientos cuando el respaldo es viejo
+      msg.textContent = data.schemaVersion>=5 ? 'Respaldo restaurado correctamente.' : 'Respaldo anterior restaurado y actualizado al formato nuevo.';
+      msg.style.color = 'var(--verde)';
+      renderVehiculoSelects(); renderVehiculoTable(); renderMovTable(); renderClienteTable(); renderTarifaTable(); renderGastoFijoTable(); renderPendientesFijos(); renderDashboard();
+    }catch(err){
+      msg.textContent = 'El archivo no es un respaldo válido.';
+      msg.style.color = 'var(--rojo)';
+    }
+  };
+  reader.readAsText(file);
+});
+
+/* ============================================================
+   UTILS
+============================================================ */
+function fmtMoney(n){
+  const sign = n<0 ? '-':'';
+  return sign + '$' + Math.abs(Math.round(n)).toLocaleString('es-AR');
+}
+function fmtDate(iso){
+  const [y,m,d] = iso.split('-');
+  return `${d}/${m}/${y}`;
+}
+function addDays(iso, days){
+  const d = new Date(iso+'T00:00:00');
+  d.setDate(d.getDate()+days);
+  return d.toISOString().slice(0,10);
+}
+function todayStr(){ return new Date().toISOString().slice(0,10); }
+function escapeHtml(s){
+  if(s===undefined||s===null) return '';
+  return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function csvEscape(v){
+  const s = String(v===undefined||v===null?'':v);
+  return '"'+s.replace(/"/g,'""')+'"';
+}
+function downloadBlob(content, mime, filename){
+  const blob = new Blob([content], {type:mime});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+/* ============================================================
+   INIT
+============================================================ */
+renderClienteOptions();
+renderIngresoRelacionadoOptions();
+renderVehiculoSelects();
+renderVehiculoTable();
+renderDashboard();
+renderMovTable();
+renderClienteTable();
+renderTarifaTable();
+renderGastoFijoTable();
+renderPendientesFijos();
+</script>
+</body>
+</html>
